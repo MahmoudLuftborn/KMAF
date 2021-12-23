@@ -21,8 +21,8 @@ String output36State = "off";
 
 // Assign output variables to GPIO pins
 const int output36 = 36;
-// ssid2 ""
-// pswd 2 ""
+bool configured = false;
+
 
 void setup() {
   Serial.begin(115200);
@@ -44,6 +44,27 @@ void setup() {
 }
 
 void loop(){
+	if(configured){
+		initWiFi();
+	}else{
+		initConfigServer();
+	}
+}
+
+void initWiFi() {
+	if(WiFi.status() != WL_CONNECTED){
+		WiFi.mode(WIFI_STA);
+		WiFi.begin("IOT-MiFi", "Pkma@1993");
+		Serial.print("Connecting to WiFi .. Pkma@1993");
+		  while (WiFi.status() != WL_CONNECTED) {
+				Serial.print('.');
+				delay(1000);
+			}
+  		Serial.println(WiFi.localIP());
+	}
+}
+
+void initConfigServer(){
   WiFiClient client = server.available();   // Listen for incoming clients
 
   if (client) {                             // If a new client connects,
@@ -65,16 +86,21 @@ void loop(){
             client.println("Connection: close");
             client.println();
             
-            // turns the GPIOs on and off
-            if (header.indexOf("GET /36/on") >= 0) {
-              Serial.println("GPIO 36 on");
-              output36State = "on";
-              digitalWrite(output36, HIGH);
-            } else if (header.indexOf("GET /36/off") >= 0) {
-              Serial.println("GPIO 36 off");
-              output36State = "off";
-              digitalWrite(output36, LOW);
+            if (header.indexOf("GET /run") >= 0) {
+              Serial.println("run okkkkkkkkkkkkkkkkkk");
+			  configured = true;
             }
+
+            // turns the GPIOs on and off
+            // if (header.indexOf("GET /36/on") >= 0) {
+            //   Serial.println("GPIO 36 on");
+            //   output36State = "on";
+            //   digitalWrite(output36, HIGH);
+            // } else if (header.indexOf("GET /36/off") >= 0) {
+            //   Serial.println("GPIO 36 off");
+            //   output36State = "off";
+            //   digitalWrite(output36, LOW);
+            // }
             
             // Display the HTML web page
             client.println("<!DOCTYPE html><html>");
@@ -93,10 +119,9 @@ void loop(){
             // Display current state, and ON/OFF buttons for GPIO 36  
             client.println("<p>GPIO 36 - State " + output36State + "</p>");
             // If the output36State is off, it displays the ON button       
-            if (output36State=="off") {
-              client.println("<p><a href=\"/36/on\"><button class=\"button\">ON</button></a></p>");
-            } else {
-              client.println("<p><a href=\"/36/off\"><button class=\"button button2\">OFF</button></a></p>");
+
+            if (configured == false) {
+              client.println("<p><a href=\"/run\"><button class=\"button\">run</button></a></p>");
             } 
                
             client.println("</body></html>");
@@ -120,15 +145,4 @@ void loop(){
     Serial.println("Client disconnected.");
     Serial.println("");
   }
-}
-
-void initWiFi() {
-  WiFi.mode(WIFI_STA);
-  WiFi.begin(ssid, password);
-  Serial.print("Connecting to WiFi ..");
-  while (WiFi.status() != WL_CONNECTED) {
-    Serial.print('.');
-    delay(1000);
-  }
-  Serial.println(WiFi.localIP());
 }
