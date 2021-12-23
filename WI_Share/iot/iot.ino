@@ -4,14 +4,100 @@
 *********/
 
 // Load Wi-Fi library
+#include <Arduino.h>
 #include <WiFi.h>
+#include <PubSubClient.h>
+#include <AsyncTCP.h>
+#include <ESPAsyncWebServer.h>
+
 
 // Replace with your network credentials
-const char* ssid     = "ESP32-Access-Point";
+const char* ssid     = "YYY";
 const char* password = "123456789";
+const char* mqtt_server = "51.15.236.147";
+const char* SSID_INPUT = "ssid_input";
+const char* PASSWORD_INPUT = "password_input";
+String ssidConfigurationValue = "";
+String passwordConfigurationValue = "";
 
 // Set web server port number to 80
-WiFiServer server(80);
+AsyncWebServer  server(80);
+
+// HTML web page to handle 32 input fields (input1, input2)
+const char Startup_Configuration[] PROGMEM = R"rawliteral(
+<!DOCTYPE HTML><html><head>
+  <title>ESP32 Configuration</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>  
+    .btn {
+      width: 60px;
+      height: 30px;
+      margin-top: 10px;
+    }
+
+    .btn.primary {
+      background-color: #333333;
+      color: white;
+      broder-radius: 7px;
+      border: none
+    }
+
+    .header {
+      margin-left: auto;
+      margin-right: auto;
+      color: grey;
+    }
+
+    .container{
+      display: flex;
+      flex-direction: column;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    .config-container{
+      margin-left: auto;
+      margin-right: auto;
+      margin-top: 5px;
+      margin-botton: 5px;
+      padding: 15px;
+      display: flex;
+      flex-direction: column;
+      background-color: #F8F8FF;
+      box-shadow: rgba(0, 0, 0, 0.24) 0px 3px 8px;
+      justify-content: center
+      align-items: center;
+      align-content: center;
+    }
+
+    form {
+      display: block;
+    }
+    
+  </style>
+  </head><body>
+  <div class= "container">
+  <h1 class="header">ESP32 Configuration</h1>
+  <div class="config-container">
+  <p>Please enter the ssid and password for the network you want to configure.</p>
+   <form action="/get">
+   <p>ssid: </p>
+    <input type="text" name="ssid_input">
+    <br>
+    <p>password: </p>
+    <input type="password" name="password_input">
+    <br>
+    <input class="btn primary" type="submit" value="Submit">
+  </form>
+  </div>
+  </div>
+</body></html>)rawliteral";
+
+WiFiClient espClient;
+PubSubClient client(espClient);
+long lastMsg = 0;
+char msg[50];
+int value = 0;
 
 // Variable to store the HTTP request
 String header;
@@ -39,110 +125,103 @@ void setup() {
   IPAddress IP = WiFi.softAPIP();
   Serial.print("AP IP address: ");
   Serial.println(IP);
-  
+  setupCofigurationPage();
+  server.onNotFound(notFound);
   server.begin();
 }
 
 void loop(){
-	if(configured){
-		initWiFi();
-	}else{
-		initConfigServer();
-	}
+  if(configured){
+    initWiFi();
+    initMQTT();
+  }
 }
 
 void initWiFi() {
-	if(WiFi.status() != WL_CONNECTED){
-		WiFi.mode(WIFI_STA);
-		WiFi.begin("IOT-MiFi", "Pkma@1993");
-		Serial.print("Connecting to WiFi .. Pkma@1993");
-		  while (WiFi.status() != WL_CONNECTED) {
-				Serial.print('.');
-				delay(1000);
-			}
-  		Serial.println(WiFi.localIP());
-	}
+  if(WiFi.status() != WL_CONNECTED){
+    WiFi.mode(WIFI_STA);
+    WiFi.begin("IOT-MiFi", "Pkma@1993");
+    Serial.print("Connecting to WiFi .. Pkma@1993");
+      while (WiFi.status() != WL_CONNECTED) {
+        Serial.print('.');
+        delay(1000);
+      }
+      Serial.println(WiFi.localIP());
+  }
 }
 
-void initConfigServer(){
-  WiFiClient client = server.available();   // Listen for incoming clients
+void initMQTT(){
+  client.setServer(mqtt_server, 1883);
+    client.setCallback(callback);
+  while (!client.connected()) {
 
-  if (client) {                             // If a new client connects,
-    Serial.println("New Client.");          // print a message out in the serial port
-    String currentLine = "";                // make a String to hold incoming data from the client
-    while (client.connected()) {            // loop while the client's connected
-      if (client.available()) {             // if there's bytes to read from the client,
-        char c = client.read();             // read a byte, then
-        Serial.write(c);                    // print it out the serial monitor
-        header += c;
-        if (c == '\n') {                    // if the byte is a newline character
-          // if the current line is blank, you got two newline characters in a row.
-          // that's the end of the client HTTP request, so send a response:
-          if (currentLine.length() == 0) {
-            // HTTP headers always start with a response code (e.g. HTTP/1.1 200 OK)
-            // and a content-type so the client knows what's coming, then a blank line:
-            client.println("HTTP/1.1 200 OK");
-            client.println("Content-type:text/html");
-            client.println("Connection: close");
-            client.println();
-            
-            if (header.indexOf("GET /run") >= 0) {
-              Serial.println("run okkkkkkkkkkkkkkkkkk");
-			  configured = true;
-            }
 
-            // turns the GPIOs on and off
-            // if (header.indexOf("GET /36/on") >= 0) {
-            //   Serial.println("GPIO 36 on");
-            //   output36State = "on";
-            //   digitalWrite(output36, HIGH);
-            // } else if (header.indexOf("GET /36/off") >= 0) {
-            //   Serial.println("GPIO 36 off");
-            //   output36State = "off";
-            //   digitalWrite(output36, LOW);
-            // }
-            
-            // Display the HTML web page
-            client.println("<!DOCTYPE html><html>");
-            client.println("<head><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">");
-            client.println("<link rel=\"icon\" href=\"data:,\">");
-            // CSS to style the on/off buttons 
-            // Feel free to change the background-color and font-size attributes to fit your preferences
-            client.println("<style>html { font-family: Helvetica; display: inline-block; margin: 0px auto; text-align: center;}");
-            client.println(".button { background-color: #4CAF50; border: none; color: white; padding: 16px 40px;");
-            client.println("text-decoration: none; font-size: 30px; margin: 2px; cursor: pointer;}");
-            client.println(".button2 {background-color: #555555;}</style></head>");
-            
-            // Web Page Heading
-            client.println("<body><h1>ESP32 Web Server</h1>");
-            
-            // Display current state, and ON/OFF buttons for GPIO 36  
-            client.println("<p>GPIO 36 - State " + output36State + "</p>");
-            // If the output36State is off, it displays the ON button       
-
-            if (configured == false) {
-              client.println("<p><a href=\"/run\"><button class=\"button\">run</button></a></p>");
-            } 
-               
-            client.println("</body></html>");
-            
-            // The HTTP response ends with another blank line
-            client.println();
-            // Break out of the while loop
-            break;
-          } else { // if you got a newline, then clear currentLine
-            currentLine = "";
-          }
-        } else if (c != '\r') {  // if you got anything else but a carriage return character,
-          currentLine += c;      // add it to the end of the currentLine
-        }
-      }
+    Serial.print("Attempting MQTT connection...");
+    // Attempt to connect
+    if (client.connect("espClient")) {
+      Serial.println("connected");
+      // Subscribe
+      client.subscribe("esp32/test");
+      Serial.print(client.state());
+    } else {
+      Serial.print("failed, rc=");
+      Serial.print(client.state());
+      Serial.println(" try again in 5 seconds");
+      // Wait 5 seconds before retrying
+      delay(5000);
     }
-    // Clear the header variable
-    header = "";
-    // Close the connection
-    client.stop();
-    Serial.println("Client disconnected.");
-    Serial.println("");
   }
+  client.loop();
+
+}
+
+void callback(char* topic, byte* message, unsigned int length) {
+  Serial.print("Message arrived on topic: ");
+  Serial.print(topic);
+  Serial.print(". Message: ");
+  String messageTemp;
+  
+  for (int i = 0; i < length; i++) {
+    Serial.print((char)message[i]);
+    messageTemp += (char)message[i];
+  }
+  Serial.println();
+  Serial.print(messageTemp);
+}
+
+void notFound(AsyncWebServerRequest *request) {
+  request->send(404, "text/plain", "Not found");
+}
+
+void setupCofigurationPage(){
+   // Send web page with input fields to client
+  server.on("/", HTTP_GET, [](AsyncWebServerRequest *request){
+    request->send_P(200, "text/html", Startup_Configuration);
+  });
+
+  // Send a GET request to <ESP_IP>/get?input1=<inputMessage>
+  server.on("/get", HTTP_GET, [] (AsyncWebServerRequest *request) {
+    String ssidInputMessage = "N/A";
+    String ssidInputParam = "N/A";
+    String passwordInputMessage = "N/A";
+    String passwordInputParam = "N/A";
+  configured = true;
+    
+    // GET input1 value on <ESP_IP>/get?input1=<inputMessage>
+    if (request->hasParam(SSID_INPUT)) {
+      ssidInputMessage = request->getParam(SSID_INPUT)->value();
+      ssidInputParam = SSID_INPUT;
+    }
+    // GET input2 value on <ESP_IP>/get?input2=<inputMessage>
+    if (request->hasParam(PASSWORD_INPUT)) {
+      passwordInputMessage = request->getParam(PASSWORD_INPUT)->value();
+      passwordInputParam = PASSWORD_INPUT;
+    }
+    Serial.println(ssidInputMessage);
+    Serial.println(passwordInputMessage);
+    request->send(200, "text/html", "HTTP GET request sent to your ESP on input field (" 
+                                     + ssidInputParam + ") with value: " + ssidInputMessage +
+                                     " and input field (" + passwordInputParam + ") with value: " + passwordInputMessage +
+                                     "<br><a href=\"/\">Return to Home Page</a>");
+  });
 }
