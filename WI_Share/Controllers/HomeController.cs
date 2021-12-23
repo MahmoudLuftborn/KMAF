@@ -71,86 +71,22 @@ namespace WI_Share.Controllers
         [HttpGet]
         public IActionResult Index()
         {
-            Console.WriteLine("Starting Publisher....");
-            try
-            {
-                // Create a new MQTT client.
-                var factory = new MqttFactory();
-                _client = factory.CreateMqttClient();
-
-                //configure options
-                _options = new MqttClientOptionsBuilder()
-                    .WithClientId("PublisherId")
-                    .WithTcpServer("51.15.236.147", 1883)
-                    //.WithCredentials("user", "kiro")
-                    .WithCleanSession()
-                    .Build();
-                //handlers
-                _client.UseConnectedHandler(e =>
-                {
-                    Console.WriteLine("Connected successfully with MQTT Brokers.");
-                });
-                _client.UseDisconnectedHandler(e =>
-                {
-                    Console.WriteLine("Disconnected from MQTT Brokers.");
-                });
-                _client.UseApplicationMessageReceivedHandler(e =>
-                {
-                    try
-                    {
-                        string topic = e.ApplicationMessage.Topic;
-                        if (string.IsNullOrWhiteSpace(topic) == false)
-                        {
-                            string payload = Encoding.UTF8.GetString(e.ApplicationMessage.Payload);
-                            Console.WriteLine($"Topic: {topic}. Message Received: {payload}");
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        Console.WriteLine(ex.Message, ex);
-                    }
-                });
-
-
-                //connect
-                _client.ConnectAsync(_options).GetAwaiter().GetResult();
-
-                Console.WriteLine("Press key to publish message.");
-                Console.ReadLine();
-                //simulating publish
-                SimulatePublish();
-
-
-                Console.WriteLine("Simulation ended! press any key to exit.");
-                Console.ReadLine();
-
-                //To keep the app running in container
-                //https://stackoverflow.com/questions/38549006/docker-container-exits-immediately-even-with-console-readline-in-a-net-core-c
-                //Task.Run(() => Thread.Sleep(Timeout.Infinite)).Wait();
-                _client.DisconnectAsync().Wait();
-
-            }
-            catch (Exception e)
-            {
-                Console.WriteLine(e);
-                throw;
-            }
-
             return View();
         }
 
         [HttpGet]
         public IActionResult Setting()
         {
-
-            return View();
+            return View("Setting");
         }
 
         [HttpPost]
         public IActionResult Setting(SettingModel settingModel)
         {
-
-            return View();
+            char enableReading = settingModel.enableReading ? '1' : '0';
+            string data = settingModel.ssid + ';' + settingModel.password + ';' + settingModel.ipAdress + ';' + enableReading;
+            PublishToQueue("esp32/test", data);
+            return null;
         }
 
         void SimulatePublish()
@@ -175,6 +111,24 @@ namespace WI_Share.Controllers
                 }
                 Thread.Sleep(2000);
             }
+        }
+
+        void PublishToQueue(string queueName, string data)
+        {
+            var testMessage = new MqttApplicationMessageBuilder()
+                    .WithTopic(queueName)
+                    .WithQualityOfServiceLevel(MQTTnet.Protocol.MqttQualityOfServiceLevel.ExactlyOnce)
+                    .WithPayload($"Payload: {data}")
+                    .WithRetainFlag(false)
+                    .Build();
+
+
+            if (_client.IsConnected)
+            {
+                Console.WriteLine($"publishing at {DateTime.UtcNow}");
+                _client.PublishAsync(testMessage);
+            }
+            //Thread.Sleep(2000);
         }
     }
 }
