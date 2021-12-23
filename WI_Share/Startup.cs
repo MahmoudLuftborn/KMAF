@@ -52,13 +52,11 @@ namespace WI_Share
 
 			app.UseAuthorization();
 
-			
-
 			app.UseEndpoints(endpoints =>
 			{
 				endpoints.MapControllerRoute(
 					name: "default",
-					pattern: "{controller=Home}/{action=Setting}/{id?}");
+					pattern: "{controller=Home}/{action=Index}/{id?}");
 				endpoints.MapHub<NotificationHub>("/notify");
 			});
 		}

@@ -43,7 +43,7 @@ namespace WI_Share.Core.Services
 				_client
 				.SubscribeAsync(new TopicFilterBuilder()
 				.WithQualityOfServiceLevel(MQTTnet.Protocol.MqttQualityOfServiceLevel.ExactlyOnce)
-				.WithTopic("test").Build())
+				.WithTopic("anawaa5y").Build())
 				.Wait();
 			});
 			_client.UseDisconnectedHandler(e =>
