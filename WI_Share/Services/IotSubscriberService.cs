@@ -1,5 +1,5 @@
-﻿using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
+﻿using Microsoft.AspNetCore.SignalR;
+using Microsoft.Extensions.Hosting;
 using MQTTnet;
 using MQTTnet.Client;
 using MQTTnet.Client.Options;
@@ -7,6 +7,7 @@ using System;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using WI_Share.SignalR;
 
 namespace WI_Share.Core.Services
 {
@@ -14,7 +15,14 @@ namespace WI_Share.Core.Services
 	public  class HostedServiceBase : IHostedService {
 		private IMqttClient _client;
 		private IMqttClientOptions _options;
-		public HostedServiceBase()
+		private readonly IHubContext<NotificationHub> _hubContext;
+		public HostedServiceBase(IHubContext<NotificationHub> hubContext)
+		{
+			_hubContext = hubContext ?? throw new ArgumentNullException(nameof(hubContext));
+			InitMqtt();
+		}
+
+		private void InitMqtt()
 		{
 			var factory = new MqttFactory();
 			_client = factory.CreateMqttClient();
@@ -51,7 +59,7 @@ namespace WI_Share.Core.Services
 				Console.WriteLine($"+ Retain = {e.ApplicationMessage.Retain}");
 				Console.WriteLine();
 
-				//  Task.Run(() => _client.PublishAsync("hello/world"));
+				_hubContext.Clients.All.SendAsync("newMessage", Encoding.UTF8.GetString(e.ApplicationMessage.Payload));
 			});
 		}
 
