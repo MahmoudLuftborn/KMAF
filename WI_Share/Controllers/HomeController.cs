@@ -5,6 +5,7 @@ using MQTTnet.Client.Options;
 using System;
 using System.Text;
 using System.Threading;
+using System.Threading.Tasks;
 using WI_Share.Models;
 
 namespace WI_Share.Controllers
@@ -81,12 +82,12 @@ namespace WI_Share.Controllers
         }
 
         [HttpPost]
-        public IActionResult Setting(SettingModel settingModel)
+        public async Task<IActionResult> Setting(SettingModel settingModel)
         {
             char enableReading = settingModel.enableReading ? '1' : '0';
             string data = settingModel.ssid + ';' + settingModel.password + ';' + settingModel.ipAdress + ';' + enableReading;
-            PublishToQueue("esp32/test", data);
-            return null;
+            await PublishToQueue("anawaa5y", data);
+            return RedirectToAction("Setting");
         }
 
         void SimulatePublish()
@@ -113,7 +114,7 @@ namespace WI_Share.Controllers
             }
         }
 
-        void PublishToQueue(string queueName, string data)
+        async Task<IActionResult> PublishToQueue(string queueName, string data)
         {
             var testMessage = new MqttApplicationMessageBuilder()
                     .WithTopic(queueName)
@@ -126,8 +127,9 @@ namespace WI_Share.Controllers
             if (_client.IsConnected)
             {
                 Console.WriteLine($"publishing at {DateTime.UtcNow}");
-                _client.PublishAsync(testMessage);
+                await _client.PublishAsync(testMessage);
             }
+            return null;
             //Thread.Sleep(2000);
         }
     }
