@@ -1,5 +1,5 @@
-﻿using Microsoft.AspNetCore.SignalR;
-using Microsoft.Extensions.Hosting;
+﻿using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using MQTTnet;
 using MQTTnet.Client;
 using MQTTnet.Client.Options;
@@ -7,31 +7,17 @@ using System;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using WI_Share.SignalR;
-using WI_Share.Models;
-using WI_Share.Configurations;
-using Microsoft.Extensions.Options;
+using WI_Share.DB;
 
 namespace WI_Share.Core.Services
 {
-	
-	public  class HostedServiceBase : IHostedService {
 
-
+	public class ReadingService : IHostedService
+	{
 		private IMqttClient _client;
 		private IMqttClientOptions _options;
-		private readonly IHubContext<NotificationHub> _hubContext;
-		private readonly string _topicName = "esp32/data";
-		private readonly MQTTConfigurations _mqttConfig;
-		public HostedServiceBase(IHubContext<NotificationHub> hubContext,
-			IOptions<MQTTConfigurations> mqttConfig)
-		{
-			_hubContext = hubContext ?? throw new ArgumentNullException(nameof(hubContext));
-			_mqttConfig = mqttConfig.Value;
-			InitMqtt();
-		}
 
-		private void InitMqtt()
+		public ReadingService()
 		{
 			var factory = new MqttFactory();
 			_client = factory.CreateMqttClient();
@@ -52,7 +38,7 @@ namespace WI_Share.Core.Services
 				_client
 				.SubscribeAsync(new TopicFilterBuilder()
 				.WithQualityOfServiceLevel(MQTTnet.Protocol.MqttQualityOfServiceLevel.ExactlyOnce)
-				.WithTopic(_topicName).Build())
+				.WithTopic("esp32/reading").Build())
 				.Wait();
 			});
 			_client.UseDisconnectedHandler(e =>
@@ -61,25 +47,22 @@ namespace WI_Share.Core.Services
 			});
 			_client.UseApplicationMessageReceivedHandler(e =>
 			{
-				if (e.ApplicationMessage.Topic == _mqttConfig.RecieveTopicName)
-				{
-					Console.WriteLine("### RECEIVED APPLICATION MESSAGE ###");
-					Console.WriteLine($"+ Topic = {e.ApplicationMessage.Topic}");
-					var message = Encoding.UTF8.GetString(e.ApplicationMessage.Payload);
-					Console.WriteLine($"+ Payload = {message}");
-					Console.WriteLine($"+ QoS = {e.ApplicationMessage.QualityOfServiceLevel}");
-					Console.WriteLine($"+ Retain = {e.ApplicationMessage.Retain}");
-					Console.WriteLine();
+				Console.WriteLine("### RECEIVED APPLICATION MESSAGE ###");
+				Console.WriteLine($"+ Topic = {e.ApplicationMessage.Topic}");
+				Console.WriteLine($"+ Payload = {Encoding.UTF8.GetString(e.ApplicationMessage.Payload)}");
+				Console.WriteLine($"+ QoS = {e.ApplicationMessage.QualityOfServiceLevel}");
+				Console.WriteLine($"+ Retain = {e.ApplicationMessage.Retain}");
+				Console.WriteLine();
 
-					_hubContext.Clients.All.SendAsync("newMessage", Encoding.UTF8.GetString(e.ApplicationMessage.Payload));
-					if (Credentials.cred.ContainsKey("cred"))
+				if (e.ApplicationMessage.Topic == "esp32/reading")
+				{
+					var db = new DBCalls();
+					db.AddData(new DomainEntity
 					{
-						Credentials.cred["cred"] = message;
-					}
-					else
-					{
-						Credentials.cred.Add("cred", message);
-					} 
+						SeriesId = Guid.NewGuid(),
+						Timestamp = DateTime.Now,
+						Value = Convert.ToDouble(Encoding.UTF8.GetString(e.ApplicationMessage.Payload))
+					}).GetAwaiter().GetResult();
 				}
 			});
 		}
