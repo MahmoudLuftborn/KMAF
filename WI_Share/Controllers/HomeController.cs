@@ -131,14 +131,22 @@ namespace WI_Share.Controllers
 		{
 			if (str.Length > 0)
 			{
-				var tokensWithoutHeader = str.Split(':');
+				string[] tokens;
 
-				if (tokensWithoutHeader.Length <= 1)
+				if (str.Contains(':'))
 				{
-					return new SettingModel();
-				}
+					var tokensWithoutHeader = str.Split(':');
 
-				var tokens = tokensWithoutHeader[1].Split(';');
+					if (tokensWithoutHeader.Length <= 1)
+					{
+						return new SettingModel();
+					}
+					tokens = tokensWithoutHeader[1].Split(';');
+				}
+				else
+				{
+					tokens = str.Split(';');
+				}
 
 				if (tokens.Length <= 0)
 				{
@@ -150,7 +158,7 @@ namespace WI_Share.Controllers
 					ssid = tokens[0],
 					password = tokens[1],
 					ipAdress = tokens[2]
-				}; 
+				};
 			}
 			else
 			{

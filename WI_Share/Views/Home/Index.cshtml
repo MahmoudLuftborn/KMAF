@@ -25,7 +25,7 @@
 		}
 </style>
 
-<div class="container">
+<div class="container" id="main-container">
 	@{
 		if (Model.ssid == null || Model.ssid == "")
 		{
@@ -58,6 +58,9 @@
 						@Html.DisplayFor(model => model.ipAdress)
 					</dd>
 				</dl>
+
+				<a asp-action="Setting" asp-controller="Home">Edit</a>
+				<a asp-action="Reading" asp-controller="Home">Readings</a>
 			</div>
 		}
 	}
@@ -86,12 +89,7 @@
 	});
 
 	connection.on('newMessage', message => {
-		var ssidElement = document.getElementById("ssid_value");
-		var passwordElement = document.getElementById("password_value");
-		var iPElement = document.getElementById("ip_value");
-
-		xhttp.open("GET", "https://localhost:5001/", true);
-		xhttp.send();
+		window.location.reload();
 	});
 
 	// Start the connection.
