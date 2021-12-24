@@ -6,6 +6,7 @@ using System;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using WI_Share.DB;
 using WI_Share.Models;
 
 namespace WI_Share.Controllers
@@ -72,6 +73,16 @@ namespace WI_Share.Controllers
         [HttpGet]
         public IActionResult Index()
         {
+            //var db = new DBCalls();
+            //await db.AddData(new DomainEntity
+            //{
+            //    SeriesId = Guid.NewGuid(),
+            //    Timestamp = DateTime.Now,
+            //    Value = 30
+            //});
+
+            //var sdfsd = db.GetLatest();
+
             return View();
         }
 
