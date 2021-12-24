@@ -7,6 +7,7 @@ using System;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using WI_Share.DB;
 
 namespace WI_Share.Core.Services
 {
@@ -23,7 +24,7 @@ namespace WI_Share.Core.Services
 
 			//configure options
 			_options = new MqttClientOptionsBuilder()
-				.WithClientId("SubscriberId")
+				.WithClientId(Guid.NewGuid().ToString())
 				.WithTcpServer("51.15.236.147", 1883)
 				//.WithCredentials("bud", "%spencer%")
 				.WithCleanSession(false)
@@ -37,7 +38,7 @@ namespace WI_Share.Core.Services
 				_client
 				.SubscribeAsync(new TopicFilterBuilder()
 				.WithQualityOfServiceLevel(MQTTnet.Protocol.MqttQualityOfServiceLevel.ExactlyOnce)
-				.WithTopic("reading").Build())
+				.WithTopic("esp32/reading").Build())
 				.Wait();
 			});
 			_client.UseDisconnectedHandler(e =>
@@ -53,7 +54,16 @@ namespace WI_Share.Core.Services
 				Console.WriteLine($"+ Retain = {e.ApplicationMessage.Retain}");
 				Console.WriteLine();
 
-				//  Task.Run(() => _client.PublishAsync("hello/world"));
+				if (e.ApplicationMessage.Topic == "esp32/reading")
+				{
+					var db = new DBCalls();
+					db.AddData(new DomainEntity
+					{
+						SeriesId = Guid.NewGuid(),
+						Timestamp = DateTime.Now,
+						Value = Convert.ToDouble(Encoding.UTF8.GetString(e.ApplicationMessage.Payload))
+					}).GetAwaiter().GetResult();
+				}
 			});
 		}
 

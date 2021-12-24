@@ -28,6 +28,7 @@ namespace WI_Share
 			//services.AddRazorPages();
 			services.AddControllersWithViews();
 			services.AddHostedService<HostedServiceBase>();
+			services.AddHostedService<ReadingService>();
 			services.AddSignalR();
 		}
 

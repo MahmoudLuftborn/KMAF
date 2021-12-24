@@ -1,0 +1,159 @@
+﻿@model WI_Share.Models.ReadingModel
+<style>
+	p {
+		display: none;
+	}
+</style>
+<div>
+	<canvas id="myChart"></canvas>
+	<div id="label">
+		@foreach (var item in Model.Labels)
+		{
+			<p>@item</p>
+		}
+	</div>
+	<div id="data">
+		@foreach (var item in Model.Data)
+		{
+			<p>@item</p>
+		}
+	</div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+	class MakeRequest {
+		constructor(url, method = 'get', headers = {}) {
+			this.method = method;
+			this.url = url;
+			this.headers = headers;
+		}
+		setHeaders(httpRequest) {
+			for (const header in this.headers) {
+				httpRequest.setRequestHeader(header, this.headers[header]);
+			}
+		}
+		send(data = null) {
+			return new Promise((resolve, reject) => {
+				const xmlHttpRequest = new XMLHttpRequest();
+				xmlHttpRequest.open(this.method, this.url);
+				this.setHeaders(xmlHttpRequest);
+				xmlHttpRequest.onload = () => {
+					if (xmlHttpRequest.status >= 200 &&
+						xmlHttpRequest.status < 300) {
+						resolve(xmlHttpRequest.response);
+					}
+					else {
+						reject({
+							status: xmlHttpRequest.status,
+							statusText: xmlHttpRequest.statusText,
+							body: xmlHttpRequest.response,
+						});
+					}
+				};
+				xmlHttpRequest.onerror = () => {
+					reject({
+						status: xmlHttpRequest.status,
+						statusText: xmlHttpRequest.statusText,
+						body: xmlHttpRequest.response,
+					});
+				};
+				xmlHttpRequest.send(data);
+			});
+		}
+	}
+</script>
+<script>
+	let myChart;
+	let labels = [];
+	const labelPs = document.querySelectorAll("#label p");
+	labelPs.forEach(l => labels.push(l.innerText));
+
+	let dataArr = [];
+	const dataPs = document.querySelectorAll("#data p");
+	dataPs.forEach(d => dataArr.push(parseFloat(d.innerText)));
+
+	function appendReadings() {
+		new MakeRequest("/home/getlatest")
+			.send()
+			.then(response => {
+				let arr = JSON.parse(response);
+				console.log(arr);
+				arr.forEach(i => {
+					dataArr.push(i.value);
+					labels.push(i.timestamp.split('T')[1].substr(0, 8));
+					if (labels.length > 10) {
+						labels.splice(0, 1);
+					}
+				});
+			});
+	}
+
+	function start() {
+		if (myChart) {
+			myChart.destroy();
+		}
+
+		const data = {
+			labels: labels,
+			datasets: [{
+				label: 'Readings',
+				backgroundColor: '#005A9C',
+				borderColor: '#daa520',
+				data: dataArr,
+			}]
+		};
+
+		const config = {
+			type: 'line',
+			data: data,
+			options: {}
+		};
+		myChart = new Chart(
+			document.getElementById('myChart'),
+			config
+		);
+	}
+	start();
+	setInterval(() => {
+		start();
+		appendReadings();
+	}, 3000);
+</script>
+
+@*<script>
+		const ctx = document.getElementById('myChart').getContext('2d');
+		const myChart = new Chart(ctx, {
+			type: 'bar',
+			data: {
+				labels: ['Red', 'Blue', 'Yellow', 'Green', 'Purple', 'Orange'],
+				datasets: [{
+					label: '# of Votes',
+					data: [12, 19, 3, 5, 2, 3],
+					backgroundColor: [
+						'rgba(255, 99, 132, 0.2)',
+						'rgba(54, 162, 235, 0.2)',
+						'rgba(255, 206, 86, 0.2)',
+						'rgba(75, 192, 192, 0.2)',
+						'rgba(153, 102, 255, 0.2)',
+						'rgba(255, 159, 64, 0.2)'
+					],
+					borderColor: [
+						'rgba(255, 99, 132, 1)',
+						'rgba(54, 162, 235, 1)',
+						'rgba(255, 206, 86, 1)',
+						'rgba(75, 192, 192, 1)',
+						'rgba(153, 102, 255, 1)',
+						'rgba(255, 159, 64, 1)'
+					],
+					borderWidth: 1
+				}]
+			},
+			options: {
+				scales: {
+					y: {
+						beginAtZero: true
+					}
+				}
+			}
+		});
+	</script>*@
