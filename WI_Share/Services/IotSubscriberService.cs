@@ -7,6 +7,7 @@ using System;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using WI_Share.Models;
 
 namespace WI_Share.Core.Services
 {
@@ -35,7 +36,7 @@ namespace WI_Share.Core.Services
 				_client
 				.SubscribeAsync(new TopicFilterBuilder()
 				.WithQualityOfServiceLevel(MQTTnet.Protocol.MqttQualityOfServiceLevel.ExactlyOnce)
-				.WithTopic("test").Build())
+				.WithTopic("anawa5y").Build())
 				.Wait();
 			});
 			_client.UseDisconnectedHandler(e =>
@@ -46,11 +47,12 @@ namespace WI_Share.Core.Services
 			{
 				Console.WriteLine("### RECEIVED APPLICATION MESSAGE ###");
 				Console.WriteLine($"+ Topic = {e.ApplicationMessage.Topic}");
-				Console.WriteLine($"+ Payload = {Encoding.UTF8.GetString(e.ApplicationMessage.Payload)}");
+				var message = Encoding.UTF8.GetString(e.ApplicationMessage.Payload);
+				Console.WriteLine($"+ Payload = {message}");
 				Console.WriteLine($"+ QoS = {e.ApplicationMessage.QualityOfServiceLevel}");
 				Console.WriteLine($"+ Retain = {e.ApplicationMessage.Retain}");
 				Console.WriteLine();
-
+				Credentials.cred.Add("cred", message);
 				//  Task.Run(() => _client.PublishAsync("hello/world"));
 			});
 		}

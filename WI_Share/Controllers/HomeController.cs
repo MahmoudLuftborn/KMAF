@@ -3,6 +3,8 @@ using MQTTnet;
 using MQTTnet.Client;
 using MQTTnet.Client.Options;
 using System;
+using System.Collections;
+using System.Collections.Generic;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -14,9 +16,12 @@ namespace WI_Share.Controllers
     {
         private IMqttClient _client;
         private IMqttClientOptions _options;
+        //private IDictionary _data = new Dictionary<string, string>();
 
         public HomeController()
         {
+            //_data.Add("credentials", "");
+
             Console.WriteLine("Starting Publisher....");
             try
             {
@@ -72,13 +77,14 @@ namespace WI_Share.Controllers
         [HttpGet]
         public IActionResult Index()
         {
-            return View();
+
+            return View(SplitData(Credentials.cred["cred"]));
         }
 
         [HttpGet]
         public IActionResult Setting()
         {
-            return View("Setting");
+            return View("Setting", SplitData(Credentials.cred["cred"].ToString()));
         }
 
         [HttpPost]
@@ -87,34 +93,10 @@ namespace WI_Share.Controllers
             char enableReading = settingModel.enableReading ? '1' : '0';
             string data = settingModel.ssid + ';' + settingModel.password + ';' + settingModel.ipAdress + ';' + enableReading;
             await PublishToQueue("anawaa5y", data);
-            return RedirectToAction("Setting");
+            return RedirectToAction("Index", settingModel);
         }
 
-        void SimulatePublish()
-        {
-
-            var counter = 0;
-            while (counter < 10)
-            {
-                counter++;
-                var testMessage = new MqttApplicationMessageBuilder()
-                    .WithTopic("test")
-                    .WithQualityOfServiceLevel(MQTTnet.Protocol.MqttQualityOfServiceLevel.ExactlyOnce)
-                    .WithPayload($"Payload: {counter}")
-                    .WithRetainFlag(false)
-                    .Build();
-
-
-                if (_client.IsConnected)
-                {
-                    Console.WriteLine($"publishing at {DateTime.UtcNow}");
-                    _client.PublishAsync(testMessage);
-                }
-                Thread.Sleep(2000);
-            }
-        }
-
-        async Task<IActionResult> PublishToQueue(string queueName, string data)
+        public async Task<IActionResult> PublishToQueue(string queueName, string data)
         {
             var testMessage = new MqttApplicationMessageBuilder()
                     .WithTopic(queueName)
@@ -128,9 +110,19 @@ namespace WI_Share.Controllers
             {
                 Console.WriteLine($"publishing at {DateTime.UtcNow}");
                 await _client.PublishAsync(testMessage);
+                Credentials.cred["cred"] = data;
             }
             return null;
             //Thread.Sleep(2000);
+        }
+
+        private SettingModel SplitData(string str)
+        {
+            string[] tokens = str.Split(';');
+            return new SettingModel { ssid = tokens[0], 
+                password = tokens[1], 
+                ipAdress = tokens[2], 
+                enableReading = tokens[3] == "1" ? true : false };
         }
     }
 }
