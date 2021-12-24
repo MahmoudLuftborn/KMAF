@@ -8,6 +8,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using WI_Share.Configurations;
 using WI_Share.Core.Services;
 using WI_Share.SignalR;
 
@@ -30,6 +31,7 @@ namespace WI_Share
 			services.AddHostedService<HostedServiceBase>();
 			services.AddHostedService<ReadingService>();
 			services.AddSignalR();
+			services.Configure<MQTTConfigurations>(Configuration.GetSection("MQTT"));
 		}
 
 		// This method gets called by the runtime. Use this method to configure the HTTP request pipeline.

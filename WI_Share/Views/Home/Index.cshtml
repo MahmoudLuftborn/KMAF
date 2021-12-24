@@ -1,10 +1,69 @@
-﻿@{
-    ViewData["Title"] = "Home page";
+﻿@model Models.SettingModel
+@{
+	ViewData["Title"] = "Home page";
 }
 
-<div class="text-center">
-    <h1 class="display-4">Welcome</h1>
-    <p>Learn about <a href="https://docs.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
+<style>
+
+	.cred-container {
+		/*display: flex;*/
+		background-color: whitesmoke;
+		color: black;
+		padding: 15px;
+		margin: 15px;
+		border-radius: 7px;
+		box-shadow: rgba(0, 0, 0, 0.15) 1.95px 1.95px 2.6px;
+		border: none;
+	}
+
+		.cred-container.empty {
+			border-left: 5px solid red;
+		}
+
+		.cred-container.connected {
+			border-left: 5px solid green;
+		}
+</style>
+
+<div class="container" id="main-container">
+	@{
+		if (Model.ssid == null || Model.ssid == "")
+		{
+			<div class="cred-container empty" id="empty">
+				<div class="d-flex flex-column align-items-center justify-content-center">
+					<h3>No device is connected</h3>
+				</div>
+			</div>
+		}
+		else
+		{
+			<div class="cred-container connected" id="connected">
+				<dl class="row">
+					<dt class="col-sm-4">
+						@Html.DisplayNameFor(model => model.ssid)
+					</dt>
+					<dd class="col-sm-8" id="ssid_value">
+						@Html.DisplayFor(model => model.ssid)
+					</dd>
+					<dt class="col-sm-4">
+						@Html.DisplayNameFor(model => model.password)
+					</dt>
+					<dd class="col-sm-8" id="password_value">
+						@Html.DisplayFor(model => model.password)
+					</dd>
+					<dt class="col-sm-4">
+						@Html.DisplayNameFor(model => model.ipAdress)
+					</dt>
+					<dd class="col-sm-8" id="ip_value">
+						@Html.DisplayFor(model => model.ipAdress)
+					</dd>
+				</dl>
+
+				<a asp-action="Setting" asp-controller="Home">Edit</a>
+				<a asp-action="Reading" asp-controller="Home">Readings</a>
+			</div>
+		}
+	}
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/3.1.7/signalr.min.js"></script>
@@ -30,7 +89,7 @@
 	});
 
 	connection.on('newMessage', message => {
-		console.log(message);
+		window.location.reload();
 	});
 
 	// Start the connection.
