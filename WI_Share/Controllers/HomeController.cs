@@ -9,6 +9,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using WI_Share.Configurations;
+using WI_Share.DB;
 using WI_Share.Models;
 
 namespace WI_Share.Controllers
@@ -166,6 +167,28 @@ namespace WI_Share.Controllers
 			{
 				return new SettingModel();
 			}
+		}
+
+		[HttpGet]
+		public IActionResult Reading()
+		{
+			var readingModel = new ReadingModel()
+			{
+				Data = new double[0],
+				Labels = new string[0]
+			};
+
+			return View(readingModel);
+		}
+
+
+		[HttpGet]
+		public IActionResult GetLatest()
+		{
+			var db = new DBCalls();
+			var latest = db.GetLatest().ToList();
+
+			return new JsonResult(latest);
 		}
 	}
 }
