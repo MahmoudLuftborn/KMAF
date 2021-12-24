@@ -1,16 +1,14 @@
 ﻿@model Models.SettingModel
 
-<form action="/Home/Setting" method="post">
-    
 
     @using (Html.BeginForm("Setting", "Home", FormMethod.Post))
     {
-    <div class="row">
-        <div class="col-lg-2">SSID</div>
-        <div class="col-lg-10">
-            @Html.TextBoxFor(a => a.ssid, new { @class = "form-control" })
-        </div>
-    </div>
+	<div class="row">
+		<div class="col-lg-2">SSID</div>
+		<div class="col-lg-10">
+			@Html.TextBoxFor(a => a.ssid, new { @class = "form-control" })
+		</div>
+	</div>
     <br />
     <div class="row">
         <div class="col-lg-2">Password</div>
@@ -20,16 +18,9 @@
     </div>
     <br />
     <div class="row">
-        <div class="col-lg-2">Ip Address</div>
+        <div class="col-lg-2">IP Address</div>
         <div class="col-lg-10">
             @Html.TextBoxFor(a => a.ipAdress, new { @class = "form-control" })
-        </div>
-    </div>
-    <br />
-    <div class="row">
-        <div class="col-lg-2">Enable Reading</div>
-        <div class="col-lg-1">
-            @Html.CheckBoxFor(a => a.enableReading, new { @class = "form-control" })
         </div>
     </div>
     <br />
@@ -37,4 +28,3 @@
         <div class="col-lg-12"><input type="submit" value="Submit" class="btn btn-primary"></div>
     </div>
     }
-</form>
