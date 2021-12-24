@@ -152,6 +152,10 @@ void setup() {
   setupCofigurationPage();
   server.onNotFound(notFound);
   server.begin();
+
+  //bool rr = false;
+  //String ee = String(rr);
+  //writeStringToEEPROM(900, ee);
 }
 
 void loop(){
