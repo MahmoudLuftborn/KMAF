@@ -20,6 +20,8 @@ const char* PASSWORD_INPUT = "password_input";
 const char* IP_INPUT = "ip_input";
 String ssidConfigurationValue = "";
 String passwordConfigurationValue = "";
+String ipConfigurationValue = "";
+bool enableReading = false;
 
 // Set web server port number to 80
 AsyncWebServer  server(80);
@@ -170,6 +172,12 @@ void initMQTT(){
     if (client.connect("espClient")) {
       Serial.println("connected");
       // Subscribe
+    String temp = ssidConfigurationValue + ';' + passwordConfigurationValue + ';' + ipConfigurationValue + ';' + enableReading;
+    String sendTopic = "esp32/data";
+
+    
+    client.publish(sendTopic.c_str(),temp.c_str());
+
       client.subscribe("esp32/test");
       Serial.print(client.state());
     } else {
@@ -184,6 +192,23 @@ void initMQTT(){
 
 }
 
+String getValue(String data, char separator, int index)
+{
+  int found = 0;
+  int strIndex[] = {0, -1};
+  int maxIndex = data.length()-1;
+
+  for(int i=0; i<=maxIndex && found<=index; i++){
+    if(data.charAt(i)==separator || i==maxIndex){
+        found++;
+        strIndex[0] = strIndex[1]+1;
+        strIndex[1] = (i == maxIndex) ? i+1 : i;
+    }
+  }
+
+  return found>index ? data.substring(strIndex[0], strIndex[1]) : "";
+}
+
 void callback(char* topic, byte* message, unsigned int length) {
   Serial.print("Message arrived on topic: ");
   Serial.print(topic);
@@ -196,6 +221,16 @@ void callback(char* topic, byte* message, unsigned int length) {
   }
   Serial.println();
   Serial.print(messageTemp);
+
+  String ssid = getValue(messageTemp,';',0);
+  String pwd = getValue(messageTemp,';',1);
+  String ip = getValue(messageTemp,';',2);
+  String enableR = getValue(messageTemp,';',3);
+
+  Serial.println(ssid);
+  Serial.println(pwd);
+  Serial.println(ip);
+  Serial.println(enableR);
 }
 
 void notFound(AsyncWebServerRequest *request) {

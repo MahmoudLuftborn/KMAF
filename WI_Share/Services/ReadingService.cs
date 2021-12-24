@@ -1,5 +1,5 @@
-﻿using Microsoft.AspNetCore.SignalR;
-using Microsoft.Extensions.Hosting;
+﻿using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using MQTTnet;
 using MQTTnet.Client;
 using MQTTnet.Client.Options;
@@ -7,23 +7,16 @@ using System;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using WI_Share.SignalR;
-using WI_Share.Models;
 
 namespace WI_Share.Core.Services
 {
-	
-	public  class HostedServiceBase : IHostedService {
+
+	public class ReadingService : IHostedService
+	{
 		private IMqttClient _client;
 		private IMqttClientOptions _options;
-		private readonly IHubContext<NotificationHub> _hubContext;
-		public HostedServiceBase(IHubContext<NotificationHub> hubContext)
-		{
-			_hubContext = hubContext ?? throw new ArgumentNullException(nameof(hubContext));
-			InitMqtt();
-		}
 
-		private void InitMqtt()
+		public ReadingService()
 		{
 			var factory = new MqttFactory();
 			_client = factory.CreateMqttClient();
@@ -44,7 +37,7 @@ namespace WI_Share.Core.Services
 				_client
 				.SubscribeAsync(new TopicFilterBuilder()
 				.WithQualityOfServiceLevel(MQTTnet.Protocol.MqttQualityOfServiceLevel.ExactlyOnce)
-				.WithTopic("anawaa5y").Build())
+				.WithTopic("reading").Build())
 				.Wait();
 			});
 			_client.UseDisconnectedHandler(e =>
@@ -55,14 +48,12 @@ namespace WI_Share.Core.Services
 			{
 				Console.WriteLine("### RECEIVED APPLICATION MESSAGE ###");
 				Console.WriteLine($"+ Topic = {e.ApplicationMessage.Topic}");
-				var message = Encoding.UTF8.GetString(e.ApplicationMessage.Payload);
-				Console.WriteLine($"+ Payload = {message}");
+				Console.WriteLine($"+ Payload = {Encoding.UTF8.GetString(e.ApplicationMessage.Payload)}");
 				Console.WriteLine($"+ QoS = {e.ApplicationMessage.QualityOfServiceLevel}");
 				Console.WriteLine($"+ Retain = {e.ApplicationMessage.Retain}");
 				Console.WriteLine();
 
-				_hubContext.Clients.All.SendAsync("newMessage", Encoding.UTF8.GetString(e.ApplicationMessage.Payload));
-				Credentials.cred.Add("cred", message);
+				//  Task.Run(() => _client.PublishAsync("hello/world"));
 			});
 		}
 
